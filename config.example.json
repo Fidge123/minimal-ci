@@ -1,0 +1,18 @@
+[
+  {
+    "repository": "Fidge123/tippspiel",
+    "cwd": "~/tippspiel",
+    "commands": [
+      {
+        "command": "yarn",
+        "args": ["build"],
+        "cwd": "~/tippspiel/backend"
+      },
+      {
+        "command": "yarn",
+        "args": ["build"],
+        "cwd": "~/tippspiel/frontend"
+      }
+    ]
+  }
+]

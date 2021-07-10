@@ -1,0 +1,13 @@
+{
+  "name": "minimal-ci",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Florian Richter <florian.richter@sap.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@octokit/webhooks": "^9.9.0"
+  }
+}
