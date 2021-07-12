@@ -27,11 +27,11 @@ webhooks.on("push", async ({ payload }) => {
     payload.repository.default_branch === payload.ref.split("/")[2]
   ) {
     console.log("Pulling");
-    await spawn("git", ["pull"], { cwd: config.cwd }).then();
+    await spawn("git", ["pull"], { cwd: config.cwd, shell: true });
 
     for (const { command, args, cwd } of config.commands) {
       console.log(`Executing ${command} ${args.join(" ")} at ${cwd}`);
-      await spawn(command, args, { cwd });
+      await spawn(command, args, { cwd, shell: true });
     }
   }
 });
