@@ -4,13 +4,11 @@
     "cwd": "~/tippspiel",
     "commands": [
       {
-        "command": "yarn",
-        "args": ["build"],
+        "command": "yarn build",
         "cwd": "~/tippspiel/backend"
       },
       {
-        "command": "yarn",
-        "args": ["build"],
+        "command": "yarn build",
         "cwd": "~/tippspiel/frontend"
       }
     ]

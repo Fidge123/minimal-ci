@@ -3,7 +3,7 @@ const { readFileSync } = require("fs");
 const cp = require("child_process");
 const { promisify } = require("util");
 
-const spawn = promisify(cp.spawn);
+const exec = promisify(cp.exec);
 
 const webhooks = new Webhooks({
   secret: process.env.SECRET,
@@ -15,7 +15,6 @@ const configurations = JSON.parse(
 
 webhooks.on("push", async ({ payload }) => {
   console.log("Event received!");
-  console.log("Ref:", payload.ref);
   console.log("Repo:", payload.repository.full_name);
 
   const config = configurations.find(
@@ -27,11 +26,11 @@ webhooks.on("push", async ({ payload }) => {
     payload.repository.default_branch === payload.ref.split("/")[2]
   ) {
     console.log("Pulling");
-    await spawn("git", ["pull"], { cwd: config.cwd, shell: true });
+    await exec("git pull", { cwd: config.cwd });
 
-    for (const { command, args, cwd } of config.commands) {
+    for (const { command, cwd } of config.commands) {
       console.log(`Executing ${command} ${args.join(" ")} at ${cwd}`);
-      await spawn(command, args, { cwd, shell: true });
+      await exec(command, { cwd });
     }
   }
 });
