@@ -34,5 +34,23 @@ webhooks.on("push", ({ payload }) => {
 });
 
 require("http")
-  .createServer(createNodeMiddleware(webhooks))
+  .createServer(
+    createNodeMiddleware(webhooks, {
+      path: process.env.URLPATH || "",
+      onUnhandledRequest(req, res) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            request: {
+              path: req.path,
+              method: req.method,
+              host: req.host,
+              protocol: req.protocol,
+            },
+            error: "Unhandled request",
+          })
+        );
+      },
+    })
+  )
   .listen(process.env.PORT || 8080);
