@@ -42,10 +42,10 @@ require("http")
         res.end(
           JSON.stringify({
             request: {
-              path: req.path,
+              url: req.url,
               method: req.method,
-              host: req.host,
-              protocol: req.protocol,
+              headers: req.headers,
+              body: req.body,
             },
             error: "Unhandled request",
           })
