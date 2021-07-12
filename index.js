@@ -10,7 +10,7 @@ const configurations = JSON.parse(
   readFileSync("config.json", { encoding: "utf-8" })
 );
 
-webhooks.on("push", ({ payload }) => {
+webhooks.onAny(({ payload }) => {
   console.log("Event received!");
   console.log("Ref:", payload.ref);
   console.log("Repo:", payload.repository.full_name);
