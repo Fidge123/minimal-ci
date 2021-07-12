@@ -1,6 +1,9 @@
 const { Webhooks, createNodeMiddleware } = require("@octokit/webhooks");
 const { readFileSync } = require("fs");
-const { spawnSync } = require("child_process");
+const cp = require("child_process");
+const { promisify } = require("util");
+
+const spawn = promisify(cp.spawn);
 
 const webhooks = new Webhooks({
   secret: process.env.SECRET,
@@ -10,7 +13,7 @@ const configurations = JSON.parse(
   readFileSync("config.json", { encoding: "utf-8" })
 );
 
-webhooks.onAny(({ payload }) => {
+webhooks.on("push", async ({ payload }) => {
   console.log("Event received!");
   console.log("Ref:", payload.ref);
   console.log("Repo:", payload.repository.full_name);
@@ -24,11 +27,11 @@ webhooks.onAny(({ payload }) => {
     payload.repository.default_branch === payload.ref.split("/")[2]
   ) {
     console.log("Pulling");
-    spawnSync("git", ["pull"], { cwd: config.cwd });
+    await spawn("git", ["pull"], { cwd: config.cwd }).then();
 
     for (const { command, args, cwd } of config.commands) {
       console.log(`Executing ${command} ${args.join(" ")} at ${cwd}`);
-      spawnSync(command, args, { cwd });
+      await spawn(command, args, { cwd });
     }
   }
 });
