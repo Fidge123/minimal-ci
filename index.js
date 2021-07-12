@@ -24,7 +24,7 @@ webhooks.onAny(({ payload }) => {
     payload.repository.default_branch === payload.ref.split("/")[2]
   ) {
     console.log("Pulling");
-    spawnSync("git", ["pull"], config.cwd);
+    spawnSync("git", ["pull"], { cwd: config.cwd });
 
     for (const { command, args, cwd } of config.commands) {
       console.log(`Executing ${command} ${args.join(" ")} at ${cwd}`);
@@ -36,7 +36,7 @@ webhooks.onAny(({ payload }) => {
 require("http")
   .createServer(
     createNodeMiddleware(webhooks, {
-      path: process.env.URLPATH || "",
+      path: process.env.URLPATH || "/",
       onUnhandledRequest(req, res) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(
