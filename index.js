@@ -29,7 +29,7 @@ webhooks.on("push", async ({ payload }) => {
     await exec("git pull", { cwd: config.cwd });
 
     for (const { command, cwd } of config.commands) {
-      console.log(`Executing ${command} ${args.join(" ")} at ${cwd}`);
+      console.log(`Executing ${command} at ${cwd}`);
       await exec(command, { cwd });
     }
   }
