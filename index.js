@@ -32,6 +32,7 @@ webhooks.on("push", async ({ payload }) => {
       console.log(`Executing ${command} at ${cwd}`);
       await exec(command, { cwd });
     }
+    console.log("All done!");
   }
 });
 
