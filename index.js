@@ -30,7 +30,7 @@ webhooks.on("push", async ({ payload }) => {
 
     for (const { command, cwd } of config.commands) {
       console.log(`Executing ${command} at ${cwd}`);
-      await exec(command, { cwd });
+      await exec(command, { cwd, timeout: 120 });
     }
     console.log("All done!");
   }
