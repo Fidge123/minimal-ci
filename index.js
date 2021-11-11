@@ -28,9 +28,9 @@ webhooks.on("push", async ({ payload }) => {
     console.log("Pulling");
     await exec("git pull", { cwd: config.cwd });
 
-    for (const { command, cwd } of config.commands) {
+    for (const { command, cwd, timeout } of config.commands) {
       console.log(`Executing ${command} at ${cwd}`);
-      await exec(command, { cwd, timeout: 120 });
+      await exec(command, { cwd, timeout });
     }
     console.log("All done!");
   }

@@ -5,11 +5,13 @@
     "commands": [
       {
         "command": "yarn build",
-        "cwd": "~/tippspiel/backend"
+        "cwd": "~/tippspiel/backend",
+        "timeout": 60
       },
       {
         "command": "yarn build",
-        "cwd": "~/tippspiel/frontend"
+        "cwd": "~/tippspiel/frontend",
+        "timeout": 60
       }
     ]
   }
