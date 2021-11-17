@@ -36,7 +36,8 @@ webhooks.on("push", async ({ payload }) => {
         await sleep(10);
       }
       console.log("All done!");
-    } catch {
+    } catch (err) {
+      console.error(err);
       const t = await createTransport();
       t.sendMail({
         from: {
