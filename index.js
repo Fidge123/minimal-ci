@@ -22,66 +22,64 @@ const configurations = JSON.parse(
 );
 
 for (const config of configurations) {
-  webhooks.on(config.on, processEvent);
-}
+  webhooks.on(config.on, async ({ payload }) => {
+    console.log("Event received!");
+    console.log("Repo:", payload.repository.full_name);
 
-async function processEvent({ payload }) {
-  console.log("Event received!");
-  console.log("Repo:", payload.repository.full_name);
-
-  if (
-    config.repository === payload.repository.full_name &&
-    (payload.repository.default_branch === payload.ref?.split("/")[2] ||
-      payload.repository.default_branch === payload.workflow_run?.head_branch)
-  ) {
-    try {
-      for (const { command, cwd, timeout } of config.commands) {
-        if (command === "downloadArtifact") {
-          const res = await requestWithAuth(
-            "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
-            {
-              owner: payload.repository.owner.login,
-              repo: payload.repository.name,
-              run_id: payload.workflow_run.id,
-            }
-          );
-          for (const artifact of res.data.artifacts) {
-            const artifactRes = await requestWithAuth(
-              "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+    if (
+      config.repository === payload.repository.full_name &&
+      (payload.repository.default_branch === payload.ref?.split("/")[2] ||
+        payload.repository.default_branch === payload.workflow_run?.head_branch)
+    ) {
+      try {
+        for (const { command, cwd, timeout } of config.commands) {
+          if (command === "downloadArtifact") {
+            const res = await requestWithAuth(
+              "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
               {
                 owner: payload.repository.owner.login,
                 repo: payload.repository.name,
-                artifact_id: artifact.id,
-                archive_format: "zip",
+                run_id: payload.workflow_run.id,
               }
             );
-            writeFileSync(
-              path.resolve(cwd, "build.zip"),
-              Buffer.from(artifactRes.data)
-            );
+            for (const artifact of res.data.artifacts) {
+              const artifactRes = await requestWithAuth(
+                "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+                {
+                  owner: payload.repository.owner.login,
+                  repo: payload.repository.name,
+                  artifact_id: artifact.id,
+                  archive_format: "zip",
+                }
+              );
+              writeFileSync(
+                path.resolve(cwd, "build.zip"),
+                Buffer.from(artifactRes.data)
+              );
+            }
+          } else {
+            console.log(`Executing ${command} at ${cwd}`);
+            const timeoutInMinutes = timeout * 1000 * 60;
+            await exec(command, { cwd, timeout: timeoutInMinutes });
           }
-        } else {
-          console.log(`Executing ${command} at ${cwd}`);
-          const timeoutInMinutes = timeout * 1000 * 60;
-          await exec(command, { cwd, timeout: timeoutInMinutes });
         }
+        console.log("All done!");
+      } catch (err) {
+        console.error(err);
+        const t = await createTransport();
+        t.sendMail({
+          from: {
+            name: "Minimal CI",
+            address: "admin@6v4.de",
+          },
+          to: config.email,
+          subject: "Build failed",
+          text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
+        });
+        console.error("Build failed");
       }
-      console.log("All done!");
-    } catch (err) {
-      console.error(err);
-      const t = await createTransport();
-      t.sendMail({
-        from: {
-          name: "Minimal CI",
-          address: "admin@6v4.de",
-        },
-        to: config.email,
-        subject: "Build failed",
-        text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
-      });
-      console.error("Build failed");
     }
-  }
+  });
 }
 
 async function createTransport() {
