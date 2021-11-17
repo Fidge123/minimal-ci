@@ -1,6 +1,7 @@
 const { Webhooks, createNodeMiddleware } = require("@octokit/webhooks");
 const { readFileSync } = require("fs");
 const cp = require("child_process");
+const nodemailer = require("nodemailer");
 const { promisify } = require("util");
 
 const exec = promisify(cp.exec);
@@ -28,13 +29,43 @@ webhooks.on("push", async ({ payload }) => {
     console.log("Pulling");
     await exec("git pull", { cwd: config.cwd });
 
-    for (const { command, cwd, timeout } of config.commands) {
-      console.log(`Executing ${command} at ${cwd}`);
-      await exec(command, { cwd, timeout });
+    try {
+      for (const { command, cwd, timeout } of config.commands) {
+        console.log(`Executing ${command} at ${cwd}`);
+        await exec(command, { cwd, timeout });
+        await sleep(10);
+      }
+      console.log("All done!");
+    } catch {
+      const t = await createTransport();
+      t.sendMail({
+        from: {
+          name: "Minimal CI",
+          address: "admin@6v4.de",
+        },
+        to: config.email,
+        subject: "Build failed",
+        text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
+      });
+      console.error("Build failed");
     }
-    console.log("All done!");
   }
 });
+
+async function createTransport() {
+  return nodemailer.createTransport({
+    host: "localhost",
+    port: 25,
+    tls: { servername: "6v4.de" },
+  });
+}
+
+function sleep(seconds) {
+  const ms = seconds * 1000;
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 require("http")
   .createServer(

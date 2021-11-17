@@ -2,6 +2,7 @@
   {
     "repository": "Fidge123/tippspiel",
     "cwd": "~/tippspiel",
+    "email": "test@example.com",
     "commands": [
       {
         "command": "yarn build",
