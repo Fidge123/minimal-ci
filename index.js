@@ -4,6 +4,7 @@ const { readFileSync, writeFileSync } = require("fs");
 const cp = require("child_process");
 const nodemailer = require("nodemailer");
 const { promisify } = require("util");
+const { resolve } = require("path");
 
 const requestWithAuth = request.defaults({
   headers: {
@@ -53,7 +54,7 @@ for (const config of configurations) {
                 }
               );
               writeFileSync(
-                path.resolve(cwd, "build.zip"),
+                resolve(cwd, "build.zip"),
                 Buffer.from(artifactRes.data)
               );
             }
