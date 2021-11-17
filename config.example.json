@@ -1,18 +1,45 @@
 [
   {
-    "repository": "Fidge123/tippspiel",
-    "cwd": "~/tippspiel",
+    "repository": "Fidge123/my-project",
+    "on": "push",
     "email": "test@example.com",
     "commands": [
       {
-        "command": "yarn build",
-        "cwd": "~/tippspiel/backend",
-        "timeout": 60
+        "command": "git pull",
+        "cwd": "/home/Fidge123/my-project",
+        "timeout": 1
+      },
+      {
+        "command": "yarn install",
+        "cwd": "/home/Fidge123/my-project/backend",
+        "timeout": 1
       },
       {
         "command": "yarn build",
-        "cwd": "~/tippspiel/frontend",
-        "timeout": 60
+        "cwd": "/home/Fidge123/my-project/backend",
+        "timeout": 5
+      },
+      {
+        "command": "pm2 restart backend",
+        "cwd": "/home/Fidge123/my-project/backend",
+        "timeout": 1
+      }
+    ]
+  },
+  {
+    "repository": "Fidge123/my-project",
+    "on": "workflow_run.completed",
+    "email": "test@example.com",
+    "commands": [
+      {
+        "command": "downloadArtifact",
+        "cwd": "/home/Fidge123/my-project/frontend",
+        "timeout": 1
+      },
+      {
+        "command": "rm -rf build && unzip build.zip build && rm build.zip",
+        "cwd": "/home/Fidge123/my-project/frontend",
+        "timeout": 1
       }
     ]
   }

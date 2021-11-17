@@ -8,6 +8,7 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@octokit/request": "^5.6.2",
     "@octokit/webhooks": "^9.9.0",
     "nodemailer": "^6.7.1"
   }
