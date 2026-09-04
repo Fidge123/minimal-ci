@@ -2,7 +2,6 @@ import { Webhooks, createNodeMiddleware } from "@octokit/webhooks";
 import { request } from "@octokit/request";
 import { readFileSync, writeFileSync } from "node:fs";
 import cp from "node:child_process";
-import nodemailer from "nodemailer";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { createServer } from "node:http";
@@ -45,19 +44,12 @@ for (const config of configurations) {
               }
             );
             for (const artifact of res.data.artifacts) {
-              const artifactRes = await requestWithAuth(
-                "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
-                {
-                  owner: payload.repository.owner.login,
-                  repo: payload.repository.name,
-                  artifact_id: artifact.id,
-                  archive_format: "zip",
-                }
+              const zip = await downloadArtifact(
+                payload.repository.owner.login,
+                payload.repository.name,
+                artifact.id
               );
-              writeFileSync(
-                resolve(cwd, "build.zip"),
-                Buffer.from(artifactRes.data)
-              );
+              writeFileSync(resolve(cwd, "build.zip"), zip);
             }
           } else {
             console.log(`Executing ${command} at ${cwd}`);
@@ -68,28 +60,38 @@ for (const config of configurations) {
         console.log("All done!");
       } catch (err) {
         console.error(err);
-        const t = await createTransport();
-        t.sendMail({
-          from: {
-            name: "Minimal CI",
-            address: "admin@6v4.de",
-          },
-          to: config.email,
-          subject: "Build failed",
-          text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
-        });
         console.error("Build failed");
       }
     }
   });
 }
 
-async function createTransport() {
-  return nodemailer.createTransport({
-    host: "localhost",
-    port: 25,
-    tls: { servername: "6v4.de" },
-  });
+// The redirect target is a pre-signed URL that rejects requests carrying an
+// Authorization header with 403, so it must be followed without the token.
+async function downloadArtifact(owner, repo, artifact_id) {
+  const res = await requestWithAuth(
+    "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+    {
+      owner,
+      repo,
+      artifact_id,
+      archive_format: "zip",
+      request: { redirect: "manual" },
+    }
+  );
+
+  const location = res.headers.location;
+  if (!location) {
+    return Buffer.from(res.data);
+  }
+
+  const download = await fetch(location);
+  if (!download.ok) {
+    throw new Error(
+      `Failed to download artifact ${artifact_id}: ${download.status} ${download.statusText}`
+    );
+  }
+  return Buffer.from(await download.arrayBuffer());
 }
 
 createServer(

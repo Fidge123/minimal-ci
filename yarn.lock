@@ -70,11 +70,6 @@ json-with-bigint@^3.5.12:
   resolved "https://registry.yarnpkg.com/json-with-bigint/-/json-with-bigint-3.5.12.tgz#9f6bf722a9847ed72fa9b217b2b66181227c454c"
   integrity sha512-uwbF/wSSuOgC7qqlq27Xp5B6a2MHVug3t0idZdTqu0JnlFvgJuH7ju+KAk/J06C7GfhoYy2gnb9wz2INqcne7w==
 
-nodemailer@^10.0.0:
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-10.0.0.tgz#b1622f98bc87646ea8b847e6c1101cd2179c8cdd"
-  integrity sha512-wdv+hXBg0iIPIOf108FaZyTxqjQpCvQeAJt9pHHTooPy/y3vQtI9eiImM9AIVKR3e/0FeMA1oueNfBjFJcaK+Q==
-
 universal-user-agent@^7.0.2:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/universal-user-agent/-/universal-user-agent-7.0.3.tgz#c05870a58125a2dc00431f2df815a77fe69736be"
