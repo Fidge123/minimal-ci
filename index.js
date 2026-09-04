@@ -45,19 +45,12 @@ for (const config of configurations) {
               }
             );
             for (const artifact of res.data.artifacts) {
-              const artifactRes = await requestWithAuth(
-                "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
-                {
-                  owner: payload.repository.owner.login,
-                  repo: payload.repository.name,
-                  artifact_id: artifact.id,
-                  archive_format: "zip",
-                }
+              const zip = await downloadArtifact(
+                payload.repository.owner.login,
+                payload.repository.name,
+                artifact.id
               );
-              writeFileSync(
-                resolve(cwd, "build.zip"),
-                Buffer.from(artifactRes.data)
-              );
+              writeFileSync(resolve(cwd, "build.zip"), zip);
             }
           } else {
             console.log(`Executing ${command} at ${cwd}`);
@@ -68,27 +61,71 @@ for (const config of configurations) {
         console.log("All done!");
       } catch (err) {
         console.error(err);
-        const t = await createTransport();
-        t.sendMail({
-          from: {
-            name: "Minimal CI",
-            address: "admin@6v4.de",
-          },
-          to: config.email,
-          subject: "Build failed",
-          text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
-        });
+        try {
+          const t = await createTransport();
+          await t.sendMail({
+            from: {
+              name: "Minimal CI",
+              address: "admin@6v4.de",
+            },
+            to: config.email,
+            subject: "Build failed",
+            text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
+          });
+        } catch (mailErr) {
+          console.error("Could not send failure mail:", mailErr);
+        }
         console.error("Build failed");
       }
     }
   });
 }
 
+/**
+ * Downloads an artifact archive.
+ *
+ * The GitHub API answers with a 302 to a short-lived, pre-signed Azure Blob
+ * URL. That URL carries its own SAS credentials and rejects any request that
+ * also sends an `Authorization` header with
+ * `403 AuthenticationFailed`, so the redirect has to be followed manually
+ * without the token.
+ */
+async function downloadArtifact(owner, repo, artifact_id) {
+  const res = await requestWithAuth(
+    "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+    {
+      owner,
+      repo,
+      artifact_id,
+      archive_format: "zip",
+      request: { redirect: "manual" },
+    }
+  );
+
+  const location = res.headers.location;
+  if (!location) {
+    // No redirect: the body already is the archive.
+    return Buffer.from(res.data);
+  }
+
+  const download = await fetch(location);
+  if (!download.ok) {
+    throw new Error(
+      `Failed to download artifact ${artifact_id}: ${download.status} ${download.statusText}`
+    );
+  }
+  return Buffer.from(await download.arrayBuffer());
+}
+
 async function createTransport() {
   return nodemailer.createTransport({
     host: "localhost",
     port: 25,
-    tls: { servername: "6v4.de" },
+    tls: {
+      servername: "6v4.de",
+      // The local relay uses a self-signed certificate.
+      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+    },
   });
 }
 
