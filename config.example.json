@@ -2,7 +2,6 @@
   {
     "repository": "Fidge123/my-project",
     "on": "push",
-    "email": "test@example.com",
     "commands": [
       {
         "command": "git pull",
@@ -29,7 +28,6 @@
   {
     "repository": "Fidge123/my-project",
     "on": "workflow_run.completed",
-    "email": "test@example.com",
     "commands": [
       {
         "command": "downloadArtifact",

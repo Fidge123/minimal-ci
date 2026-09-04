@@ -2,7 +2,6 @@ import { Webhooks, createNodeMiddleware } from "@octokit/webhooks";
 import { request } from "@octokit/request";
 import { readFileSync, writeFileSync } from "node:fs";
 import cp from "node:child_process";
-import nodemailer from "nodemailer";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { createServer } from "node:http";
@@ -61,35 +60,14 @@ for (const config of configurations) {
         console.log("All done!");
       } catch (err) {
         console.error(err);
-        try {
-          const t = await createTransport();
-          await t.sendMail({
-            from: {
-              name: "Minimal CI",
-              address: "admin@6v4.de",
-            },
-            to: config.email,
-            subject: "Build failed",
-            text: `Build failed at ${new Date().toISOString()}. Please check the logs for more details.`,
-          });
-        } catch (mailErr) {
-          console.error("Could not send failure mail:", mailErr);
-        }
         console.error("Build failed");
       }
     }
   });
 }
 
-/**
- * Downloads an artifact archive.
- *
- * The GitHub API answers with a 302 to a short-lived, pre-signed Azure Blob
- * URL. That URL carries its own SAS credentials and rejects any request that
- * also sends an `Authorization` header with
- * `403 AuthenticationFailed`, so the redirect has to be followed manually
- * without the token.
- */
+// The redirect target is a pre-signed URL that rejects requests carrying an
+// Authorization header with 403, so it must be followed without the token.
 async function downloadArtifact(owner, repo, artifact_id) {
   const res = await requestWithAuth(
     "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
@@ -104,7 +82,6 @@ async function downloadArtifact(owner, repo, artifact_id) {
 
   const location = res.headers.location;
   if (!location) {
-    // No redirect: the body already is the archive.
     return Buffer.from(res.data);
   }
 
@@ -115,18 +92,6 @@ async function downloadArtifact(owner, repo, artifact_id) {
     );
   }
   return Buffer.from(await download.arrayBuffer());
-}
-
-async function createTransport() {
-  return nodemailer.createTransport({
-    host: "localhost",
-    port: 25,
-    tls: {
-      servername: "6v4.de",
-      // The local relay uses a self-signed certificate.
-      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
-    },
-  });
 }
 
 createServer(
