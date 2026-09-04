@@ -27,41 +27,72 @@ for (const config of configurations) {
     console.log("Event received!");
     console.log("Repo:", payload.repository.full_name);
 
+    if (config.repository !== payload.repository.full_name) {
+      return;
+    }
+
     if (
-      config.repository === payload.repository.full_name &&
-      (payload.repository.default_branch === payload.ref?.split("/")[2] ||
-        payload.repository.default_branch === payload.workflow_run?.head_branch)
+      payload.repository.default_branch !== payload.ref?.split("/")[2] &&
+      payload.repository.default_branch !== payload.workflow_run?.head_branch
     ) {
-      try {
-        for (const { command, cwd, timeout } of config.commands) {
-          if (command === "downloadArtifact") {
-            const res = await requestWithAuth(
-              "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
-              {
-                owner: payload.repository.owner.login,
-                repo: payload.repository.name,
-                run_id: payload.workflow_run.id,
-              }
-            );
-            for (const artifact of res.data.artifacts) {
-              const zip = await downloadArtifact(
-                payload.repository.owner.login,
-                payload.repository.name,
-                artifact.id
-              );
-              writeFileSync(resolve(cwd, "build.zip"), zip);
-            }
-          } else {
-            console.log(`Executing ${command} at ${cwd}`);
-            const timeoutInMinutes = timeout * 1000 * 60;
-            await exec(command, { cwd, timeout: timeoutInMinutes });
-          }
-        }
-        console.log("All done!");
-      } catch (err) {
-        console.error(err);
-        console.error("Build failed");
+      return;
+    }
+
+    // workflow_run.completed fires for every workflow and every conclusion.
+    // Runs that failed, were cancelled or belong to another workflow have no
+    // artifacts for us, so skip them instead of running commands that expect one.
+    if (payload.workflow_run) {
+      if (config.workflow && config.workflow !== payload.workflow_run.name) {
+        console.log(`Skipping workflow ${payload.workflow_run.name}`);
+        return;
       }
+      if (payload.workflow_run.conclusion !== "success") {
+        console.log(
+          `Skipping workflow run with conclusion ${payload.workflow_run.conclusion}`
+        );
+        return;
+      }
+    }
+
+    try {
+      for (const { command, cwd, timeout } of config.commands) {
+        if (command === "downloadArtifact") {
+          const res = await requestWithAuth(
+            "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
+            {
+              owner: payload.repository.owner.login,
+              repo: payload.repository.name,
+              run_id: payload.workflow_run.id,
+            }
+          );
+          const artifacts = res.data.artifacts.filter(
+            (artifact) =>
+              !artifact.expired &&
+              (!config.artifact || config.artifact === artifact.name)
+          );
+          if (artifacts.length === 0) {
+            throw new Error(
+              `No downloadable artifacts found for run ${payload.workflow_run.id}`
+            );
+          }
+          for (const artifact of artifacts) {
+            const zip = await downloadArtifact(
+              payload.repository.owner.login,
+              payload.repository.name,
+              artifact.id
+            );
+            writeFileSync(resolve(cwd, "build.zip"), zip);
+          }
+        } else {
+          console.log(`Executing ${command} at ${cwd}`);
+          const timeoutInMinutes = timeout * 1000 * 60;
+          await exec(command, { cwd, timeout: timeoutInMinutes });
+        }
+      }
+      console.log("All done!");
+    } catch (err) {
+      console.error(err);
+      console.error("Build failed");
     }
   });
 }

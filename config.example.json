@@ -35,10 +35,12 @@
         "timeout": 1
       },
       {
-        "command": "rm -rf build && unzip build.zip build && rm build.zip",
+        "command": "unzip build.zip -d unzipped && rm build.zip && rm -rf build && mv unzipped build",
         "cwd": "/home/Fidge123/my-project/frontend",
         "timeout": 1
       }
-    ]
+    ],
+    "workflow": "CI",
+    "artifact": "build"
   }
 ]
