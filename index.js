@@ -1,10 +1,11 @@
-const { Webhooks, createNodeMiddleware } = require("@octokit/webhooks");
-const { request } = require("@octokit/request");
-const { readFileSync, writeFileSync } = require("fs");
-const cp = require("child_process");
-const nodemailer = require("nodemailer");
-const { promisify } = require("util");
-const { resolve } = require("path");
+import { Webhooks, createNodeMiddleware } from "@octokit/webhooks";
+import { request } from "@octokit/request";
+import { readFileSync, writeFileSync } from "node:fs";
+import cp from "node:child_process";
+import nodemailer from "nodemailer";
+import { promisify } from "node:util";
+import { resolve } from "node:path";
+import { createServer } from "node:http";
 
 const requestWithAuth = request.defaults({
   headers: {
@@ -91,24 +92,22 @@ async function createTransport() {
   });
 }
 
-require("http")
-  .createServer(
-    createNodeMiddleware(webhooks, {
-      path: process.env.URLPATH || "/",
-      onUnhandledRequest(req, res) {
-        res.writeHead(400, { "content-type": "application/json" });
-        res.end(
-          JSON.stringify({
-            request: {
-              url: req.url,
-              method: req.method,
-              headers: req.headers,
-              body: req.body,
-            },
-            error: "Unhandled request",
-          })
-        );
-      },
-    })
-  )
-  .listen(process.env.PORT || 8080);
+createServer(
+  createNodeMiddleware(webhooks, {
+    path: process.env.URLPATH || "/",
+    onUnhandledRequest(req, res) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          request: {
+            url: req.url,
+            method: req.method,
+            headers: req.headers,
+            body: req.body,
+          },
+          error: "Unhandled request",
+        })
+      );
+    },
+  })
+).listen(process.env.PORT || 8080);
