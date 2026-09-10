@@ -16,14 +16,20 @@
       {
         "command": "yarn build",
         "cwd": "/home/Fidge123/my-project/backend",
-        "timeout": 5
+        "timeout": 5,
+        "env": {
+          "NODE_OPTIONS": "--max-old-space-size=2048"
+        }
       },
       {
         "command": "pm2 restart backend",
         "cwd": "/home/Fidge123/my-project/backend",
         "timeout": 1
       }
-    ]
+    ],
+    "env": {
+      "PATH": "/home/Fidge123/.local/share/fnm/aliases/default/bin:/home/Fidge123/.yarn/bin:/usr/local/bin:/usr/bin:/bin"
+    }
   },
   {
     "repository": "Fidge123/my-project",
