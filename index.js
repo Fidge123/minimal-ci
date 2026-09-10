@@ -54,8 +54,13 @@ for (const config of configurations) {
       }
     }
 
+    // Commands inherit the environment pm2 started this process with. That
+    // environment can pin an outdated toolchain (e.g. a stale fnm/nvm PATH), so
+    // an optional `env` on the config or on a single command overrides it.
+    const configEnv = { ...process.env, ...config.env };
+
     try {
-      for (const { command, cwd, timeout } of config.commands) {
+      for (const { command, cwd, timeout, env } of config.commands) {
         if (command === "downloadArtifact") {
           const res = await requestWithAuth(
             "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
@@ -86,7 +91,16 @@ for (const config of configurations) {
         } else {
           console.log(`Executing ${command} at ${cwd}`);
           const timeoutInMinutes = timeout * 1000 * 60;
-          await exec(command, { cwd, timeout: timeoutInMinutes });
+          const { stdout, stderr } = await exec(command, {
+            cwd,
+            timeout: timeoutInMinutes,
+            env: { ...configEnv, ...env },
+            // Builds are chatty and the 1 MB default kills the child once its
+            // output no longer fits.
+            maxBuffer: 32 * 1024 * 1024,
+          });
+          if (stdout) console.log(stdout);
+          if (stderr) console.error(stderr);
         }
       }
       console.log("All done!");
